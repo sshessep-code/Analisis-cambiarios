@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DÓLAR ARG · ANÁLISIS CAMBIARIO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      --orange: #FF6A00;
+      --orange-dim: #cc5500;
+      --orange-glow: rgba(255, 106, 0, 0.35);
+      --bg: #000000;
+      --bg-card: #0a0a0a;
+      --text: #FF6A00;
+      --text-dim: #994000;
+      --green: #00ff88;
+      --yellow: #ffe600;
+      --red: #ff2244;
+      --border: rgba(255, 106, 0, 0.3);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Share Tech Mono', monospace;
+      overflow-x: hidden;
+    }
+
+    /* ── GRID BACKGROUND ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,106,0,.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,106,0,.06) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── SCANLINES ── */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.18) 2px,
+        rgba(0,0,0,0.18) 4px
+      );
+      pointer-events: none;
+      z-index: 1;
+      animation: scanMove 8s linear infinite;
+    }
+    @keyframes scanMove {
+      0%   { background-position: 0 0; }
+      100% { background-position: 0 100px; }
+    }
+
+    /* ── LAYOUT ── */
+    #app {
+      position: relative;
+      z-index: 2;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 48px;
+    }
+
+    /* ── HEADER ── */
+    header {
+      width: 100%;
+      max-width: 760px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 36px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: 1.4rem;
+      letter-spacing: 0.12em;
+      text-shadow: 0 0 12px var(--orange-glow);
+    }
+    .logo span { color: var(--orange-dim); font-size: 0.75rem; display: block; font-weight: 400; letter-spacing: 0.2em; margin-top: 2px; }
+    #clock {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      text-align: right;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── CARD ── */
+    .card {
+      width: 100%;
+      max-width: 760px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-top: 2px solid var(--orange);
+      border-radius: 4px;
+      padding: 32px 36px;
+      box-shadow: 0 0 40px rgba(255,106,0,0.06), inset 0 0 60px rgba(0,0,0,0.6);
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--orange), transparent);
+      animation: shimmer 3s ease-in-out infinite;
+    }
+    @keyframes shimmer {
+      0%, 100% { opacity: 0.4; }
+      50%       { opacity: 1; }
+    }
+
+    h2 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      margin-bottom: 24px;
+      text-shadow: 0 0 8px var(--orange-glow);
+    }
+
+    /* ── FORM ELEMENTS ── */
+    label {
+      display: block;
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+      margin-top: 18px;
+      text-transform: uppercase;
+    }
+    label:first-child { margin-top: 0; }
+
+    input[type="password"],
+    input[type="url"],
+    select {
+      width: 100%;
+      background: rgba(255,106,0,0.04);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--text);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.9rem;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    input[type="password"]:focus,
+    input[type="url"]:focus,
+    select:focus {
+      border-color: var(--orange);
+      box-shadow: 0 0 10px var(--orange-glow);
+    }
+    select option { background: #0d0d0d; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 28px;
+      border: 1px solid var(--orange);
+      background: transparent;
+      color: var(--orange);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn:hover:not(:disabled) {
+      background: rgba(255,106,0,0.12);
+      box-shadow: 0 0 18px var(--orange-glow), inset 0 0 8px rgba(255,106,0,0.08);
+    }
+    .btn:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+    .btn-primary { width: 100%; margin-top: 24px; padding: 14px; font-size: 0.85rem; }
+    .btn-secondary { font-size: 0.72rem; padding: 9px 20px; }
+    .btn-ghost { border-color: var(--border); color: var(--text-dim); }
+    .btn-ghost:hover:not(:disabled) { border-color: var(--orange); color: var(--orange); }
+
+    /* DISABLED SWEEP ANIMATION */
+    .btn:disabled {
+      cursor: not-allowed;
+      color: var(--text-dim);
+      border-color: var(--border);
+      overflow: hidden;
+    }
+    .btn:disabled::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 60%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,106,0,0.15), transparent);
+      animation: sweep 1.6s linear infinite;
+    }
+    @keyframes sweep {
+      to { left: 160%; }
+    }
+
+    /* ── ERROR ── */
+    .error-msg {
+      margin-top: 10px;
+      font-size: 0.75rem;
+      color: var(--red);
+      letter-spacing: 0.06em;
+      min-height: 18px;
+    }
+
+    /* ── PROGRESS ── */
+    #progress-section { text-align: center; }
+    .progress-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.85rem;
+      letter-spacing: 0.18em;
+      margin-bottom: 28px;
+      text-shadow: 0 0 8px var(--orange-glow);
+    }
+    .steps {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+      gap: 4px;
+    }
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+    .step-dot {
+      width: 28px; height: 28px;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.65rem;
+      transition: all 0.4s;
+      position: relative;
+    }
+    .step-dot.active {
+      border-color: var(--orange);
+      box-shadow: 0 0 12px var(--orange-glow);
+      background: rgba(255,106,0,0.1);
+      color: var(--orange);
+    }
+    .step-dot.done {
+      border-color: var(--green);
+      background: rgba(0,255,136,0.1);
+      color: var(--green);
+      box-shadow: 0 0 8px rgba(0,255,136,0.3);
+    }
+    .step-dot.active::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 1px solid var(--orange);
+      animation: pulse-ring 1s ease-out infinite;
+    }
+    @keyframes pulse-ring {
+      0%   { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(1.6); }
+    }
+    .step-label {
+      font-size: 0.58rem;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      text-align: center;
+      line-height: 1.3;
+    }
+    .step-label.active { color: var(--orange); }
+    .step-connector {
+      height: 1px;
+      flex: 1;
+      background: var(--border);
+      margin-top: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+    .step-connector.done::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--orange);
+      animation: fillLine 0.4s ease-out forwards;
+    }
+    @keyframes fillLine { from { width: 0; } to { width: 100%; } }
+
+    .progress-bar-wrap {
+      width: 100%;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 16px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--orange-dim), var(--orange));
+      border-radius: 2px;
+      transition: width 0.5s ease;
+      box-shadow: 0 0 8px var(--orange-glow);
+    }
+    .progress-msg {
+      margin-top: 12px;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+      min-height: 20px;
+    }
+
+    /* ── RESULT ── */
+    #result-section {}
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .result-meta {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+    }
+
+    #markdown-output {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.88rem;
+      line-height: 1.7;
+      color: #e0d0c0;
+      padding: 20px;
+      background: rgba(255,106,0,0.025);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      overflow-x: auto;
+    }
+    #markdown-output h1, #markdown-output h2, #markdown-output h3 {
+      font-family: 'Orbitron', sans-serif;
+      color: var(--orange);
+      margin: 18px 0 10px;
+      letter-spacing: 0.1em;
+      text-shadow: 0 0 6px var(--orange-glow);
+    }
+    #markdown-output h1 { font-size: 1.1rem; }
+    #markdown-output h2 { font-size: 0.95rem; }
+    #markdown-output h3 { font-size: 0.82rem; }
+    #markdown-output p { margin-bottom: 10px; }
+    #markdown-output strong { color: var(--orange); }
+    #markdown-output em { color: #c0a080; }
+    #markdown-output hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+    #markdown-output ul, #markdown-output ol { padding-left: 22px; margin-bottom: 10px; }
+    #markdown-output li { margin-bottom: 4px; }
+    #markdown-output code {
+      background: rgba(255,106,0,0.1);
+      padding: 1px 5px;
+      border-radius: 2px;
+      font-size: 0.82rem;
+    }
+    #markdown-output pre {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 12px;
+      overflow-x: auto;
+      margin-bottom: 12px;
+    }
+    #markdown-output pre code { background: none; padding: 0; }
+    #markdown-output blockquote {
+      border-left: 3px solid var(--orange);
+      padding-left: 14px;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    #markdown-output table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-bottom: 12px;
+      font-size: 0.82rem;
+    }
+    #markdown-output th {
+      background: rgba(255,106,0,0.1);
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      color: var(--orange);
+      text-align: left;
+    }
+    #markdown-output td {
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+    }
+
+    /* SEMAPHORE HIGHLIGHTS */
+    .tag-verde  { color: var(--green);  font-weight: bold; }
+    .tag-amarillo { color: var(--yellow); font-weight: bold; }
+    .tag-rojo   { color: var(--red);    font-weight: bold; }
+
+    #raw-json-wrap {
+      margin-top: 16px;
+      display: none;
+    }
+    #raw-json-wrap.visible { display: block; }
+    #raw-json {
+      background: rgba(0,0,0,0.5);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 14px;
+      font-size: 0.78rem;
+      color: #888;
+      overflow: auto;
+      max-height: 300px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .actions-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    /* ── UTILITIES ── */
+    .hidden { display: none !important; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 540px) { .row-2 { grid-template-columns: 1fr; } .card { padding: 20px 16px; } }
+
+    /* Flicker on load */
+    @keyframes flicker {
+      0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; }
+      20%, 24%, 55%                       { opacity: 0.6; }
+    }
+    .logo { animation: flicker 5s ease-in-out 1; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="logo">
+      ◈ DÓLAR ARG
+      <span>SISTEMA DE ANÁLISIS CAMBIARIO v2.0</span>
+    </div>
+    <div id="clock">--:--:--<br><span style="font-size:0.7rem;color:#663300">--/--/----</span></div>
+  </header>
+
+  <!-- ══════════════ LOGIN ══════════════ -->
+  <div class="card" id="login-section">
+    <h2>▸ ACCESO AL SISTEMA</h2>
+    <label for="pwd-input">CONTRASEÑA DE ACCESO</label>
+    <input type="password" id="pwd-input" placeholder="••••••••••" autocomplete="current-password" />
+    <div class="error-msg" id="login-error"></div>
+    <button class="btn btn-primary" id="login-btn" onclick="doLogin()">INGRESAR AL SISTEMA</button>
+  </div>
+
+  <!-- ══════════════ FORM ══════════════ -->
+  <div class="card hidden" id="form-section">
+    <h2>▸ CONFIGURACIÓN DE CONSULTA</h2>
+
+    <label for="webhook-url">URL DE WEBHOOK (MAKE.COM)</label>
+    <input type="url" id="webhook-url" placeholder="https://hook.eu2.make.com/xxxxxxx" />
+
+    <div class="row-2" style="margin-top:0">
+      <div>
+        <label for="tipo-dolar">TIPO DE DÓLAR</label>
+        <select id="tipo-dolar">
+          <option value="blue">Blue</option>
+          <option value="oficial">Oficial</option>
+          <option value="mep">MEP</option>
+          <option value="ccl">CCL</option>
+          <option value="mayorista">Mayorista</option>
+          <option value="tarjeta">Tarjeta</option>
+          <option value="cripto">Cripto</option>
+        </select>
+      </div>
+      <div>
+        <label for="tipo-analisis">TIPO DE ANÁLISIS</label>
+        <select id="tipo-analisis">
+          <option value="completo">Completo</option>
+          <option value="brechas">Foco en brechas</option>
+          <option value="tendencia">Foco en tendencia</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="analyze-btn" onclick="doAnalyze()">
+      ◈ ANALIZAR MERCADO CAMBIARIO
+    </button>
+    <div class="error-msg" id="form-error"></div>
+  </div>
+
+  <!-- ══════════════ PROGRESS ══════════════ -->
+  <div class="card hidden" id="progress-section">
+    <p class="progress-title">◈ PROCESANDO ANÁLISIS</p>
+
+    <div class="steps" id="steps-row">
+      <!-- dynamically filled -->
+    </div>
+
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+    <p class="progress-msg" id="progress-msg">Iniciando conexión...</p>
+  </div>
+
+  <!-- ══════════════ RESULT ══════════════ -->
+  <div class="card hidden" id="result-section">
+    <div class="result-header">
+      <h2 style="margin-bottom:0">▸ ANÁLISIS COMPLETADO</h2>
+      <div class="result-meta" id="result-meta"></div>
+    </div>
+
+    <div id="markdown-output"></div>
+
+    <div id="raw-json-wrap">
+      <pre id="raw-json"></pre>
+    </div>
+
+    <div class="actions-row">
+      <button class="btn btn-secondary" onclick="toggleRaw()">⟨/⟩ VER JSON CRUDO</button>
+      <button class="btn btn-secondary btn-ghost" onclick="newQuery()">↺ NUEVA CONSULTA</button>
+    </div>
+  </div>
+
+</div><!-- #app -->
+
+<script>
+  /* ═══════════════════════════════════════════════
+     CLOCK
+  ═══════════════════════════════════════════════ */
+  function updateClock() {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const time = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    const date = `${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()}`;
+    document.getElementById('clock').innerHTML =
+      `${time}<br><span style="font-size:0.7rem;color:#663300">${date}</span>`;
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  /* ═══════════════════════════════════════════════
+     UTILS
+  ═══════════════════════════════════════════════ */
+  const $ = id => document.getElementById(id);
+  function show(id)   { $(id).classList.remove('hidden'); }
+  function hide(id)   { $(id).classList.add('hidden'); }
+  // Usa el proxy cuando la página está servida por HTTPS (cualquier deploy),
+  // y llama directo al webhook solo cuando se abre como archivo local (file://).
+  function isVercel() { return location.protocol === 'https:'; }
+
+  /* ═══════════════════════════════════════════════
+     LOGIN
+  ═══════════════════════════════════════════════ */
+  $('pwd-input').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+  async function doLogin() {
+    const btn = $('login-btn');
+    const pwd = $('pwd-input').value.trim();
+    const errEl = $('login-error');
+    errEl.textContent = '';
+
+    if (!pwd) { errEl.textContent = '⚠ Ingresá tu contraseña.'; return; }
+
+    btn.disabled = true;
+    btn.textContent = 'VERIFICANDO...';
+
+    try {
+      let ok = false;
+      if (isVercel()) {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pwd })
+        });
+        ok = res.ok;
+        if (!ok) {
+          const data = await res.json().catch(() => ({}));
+          errEl.textContent = '✖ ' + (data.error || 'Contraseña incorrecta.');
+        }
+      } else {
+        // Local fallback
+        ok = pwd === 'fceuba2026';
+        if (!ok) errEl.textContent = '✖ Contraseña incorrecta.';
+      }
+
+      if (ok) {
+        hide('login-section');
+        show('form-section');
+        // Restore webhook from localStorage
+        const saved = localStorage.getItem('dolararg_webhook');
+        if (saved) $('webhook-url').value = saved;
+      }
+    } catch (err) {
+      errEl.textContent = '✖ Error de conexión: ' + err.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'INGRESAR AL SISTEMA';
+    }
+  }
+
+  /* ═══════════════════════════════════════════════
+     PROGRESS STEPS
+  ═══════════════════════════════════════════════ */
+  const STEPS = [
+    { label: 'CONEXIÓN\nSEGURA' },
+    { label: 'ENVIANDO\nSOLICITUD' },
+    { label: 'CONSULTANDO\nFUENTES' },
+    { label: 'PROCESANDO\nDATOS' },
+    { label: 'GENERANDO\nANÁLISIS' },
+  ];
+
+  function buildSteps() {
+    const row = $('steps-row');
+    row.innerHTML = '';
+    STEPS.forEach((s, i) => {
+      const dot = document.createElement('div');
+      dot.className = 'step';
+      dot.innerHTML = `
+        <div class="step-dot" id="step-dot-${i}">${i+1}</div>
+        <div class="step-label" id="step-lbl-${i}">${s.label.replace('\n','<br>')}</div>`;
+      row.appendChild(dot);
+      if (i < STEPS.length - 1) {
+        const conn = document.createElement('div');
+        conn.className = 'step-connector';
+        conn.id = `step-conn-${i}`;
+        conn.style.marginTop = '14px';
+        row.appendChild(conn);
+      }
+    });
+  }
+
+  let stepInterval = null;
+  function startProgress() {
+    buildSteps();
+    $('progress-fill').style.width = '0%';
+    $('progress-msg').textContent = 'Estableciendo conexión segura...';
+    show('progress-section');
+
+    const msgs = [
+      'Estableciendo conexión segura...',
+      'Enviando solicitud al webhook...',
+      'Consultando fuentes de datos...',
+      'Procesando información cambiaria...',
+      'Generando análisis con IA...',
+    ];
+
+    let current = 0;
+    setStepActive(0);
+
+    stepInterval = setInterval(() => {
+      if (current < STEPS.length - 1) {
+        setStepDone(current);
+        current++;
+        setStepActive(current);
+        $('progress-msg').textContent = msgs[current] || '';
+        $('progress-fill').style.width = `${Math.round((current / (STEPS.length - 1)) * 80)}%`;
+      }
+    }, 1800);
+  }
+
+  function finishProgress() {
+    clearInterval(stepInterval);
+    for (let i = 0; i < STEPS.length; i++) setStepDone(i);
+    $('progress-fill').style.width = '100%';
+    $('progress-msg').textContent = '✔ Análisis completado.';
+  }
+
+  function setStepActive(i) {
+    const dot = $(`step-dot-${i}`);
+    const lbl = $(`step-lbl-${i}`);
+    if (dot) { dot.classList.remove('done'); dot.classList.add('active'); }
+    if (lbl) { lbl.classList.add('active'); }
+  }
+  function setStepDone(i) {
+    const dot = $(`step-dot-${i}`);
+    const lbl = $(`step-lbl-${i}`);
+    const conn = $(`step-conn-${i}`);
+    if (dot) { dot.classList.remove('active'); dot.classList.add('done'); dot.textContent = '✓'; }
+    if (lbl) { lbl.classList.remove('active'); }
+    if (conn) conn.classList.add('done');
+  }
+
+  /* ═══════════════════════════════════════════════
+     ANALYZE
+  ═══════════════════════════════════════════════ */
+  let lastRawResponse = null;
+
+  async function doAnalyze() {
+    const webhookUrl = $('webhook-url').value.trim();
+    const casa        = $('tipo-dolar').value;
+    const tipoAnalisis = $('tipo-analisis').value;
+    const errEl       = $('form-error');
+    errEl.textContent  = '';
+
+    if (!webhookUrl) { errEl.textContent = '⚠ Pegá la URL del webhook de Make.com.'; return; }
+    try { new URL(webhookUrl); } catch { errEl.textContent = '⚠ URL inválida.'; return; }
+
+    // Save webhook
+    localStorage.setItem('dolararg_webhook', webhookUrl);
+
+    hide('form-section');
+    startProgress();
+
+    const payload = {
+      tipo_analisis: tipoAnalisis,
+      casa,
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      // En Vercel usamos el proxy server-side para evitar el bloqueo CORS.
+      // En local (file://) llamamos directo al webhook.
+      const fetchUrl  = isVercel() ? '/api/proxy' : webhookUrl;
+      const fetchBody = isVercel()
+        ? JSON.stringify({ webhookUrl, ...payload })
+        : JSON.stringify(payload);
+
+      const res = await fetch(fetchUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: fetchBody
+      });
+
+      finishProgress();
+      await new Promise(r => setTimeout(r, 600)); // brief pause to show 100%
+
+      let data;
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        // Try to parse as JSON anyway
+        try { data = JSON.parse(text); } catch { data = { response: text }; }
+      }
+
+      lastRawResponse = data;
+      renderResult(data, casa, tipoAnalisis);
+
+    } catch (err) {
+      clearInterval(stepInterval);
+      hide('progress-section');
+      show('form-section');
+      $('form-error').textContent = '✖ Error al conectar con el webhook: ' + err.message;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════
+     RENDER RESULT
+  ═══════════════════════════════════════════════ */
+  function colorizeTraffic(html) {
+    html = html.replace(/\bVERDE\b/g,    '<span class="tag-verde">🟢 VERDE</span>');
+    html = html.replace(/\bAMARILLO\b/g, '<span class="tag-amarillo">🟡 AMARILLO</span>');
+    html = html.replace(/\bROJO\b/g,     '<span class="tag-rojo">🔴 ROJO</span>');
+    return html;
+  }
+
+  function renderResult(data, casa, tipo) {
+    hide('progress-section');
+
+    let mdText = '';
+    if (typeof data === 'string') {
+      mdText = data;
+    } else if (data.response) {
+      mdText = typeof data.response === 'string' ? data.response : JSON.stringify(data.response, null, 2);
+    } else if (data.output) {
+      mdText = data.output;
+    } else if (data.result) {
+      mdText = data.result;
+    } else if (data.text) {
+      mdText = data.text;
+    } else if (data.content) {
+      if (Array.isArray(data.content)) {
+        mdText = data.content.map(c => c.text || '').join('\n');
+      } else {
+        mdText = String(data.content);
+      }
+    } else if (data.choices && data.choices[0]) {
+      mdText = data.choices[0].message?.content || data.choices[0].text || '';
+    } else {
+      mdText = JSON.stringify(data, null, 2);
+    }
+
+    let html = marked.parse(mdText);
+    html = colorizeTraffic(html);
+    $('markdown-output').innerHTML = html;
+
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    $('result-meta').textContent =
+      `${casa.toUpperCase()} · ${tipo.toUpperCase()} · ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+    $('raw-json').textContent = JSON.stringify(lastRawResponse, null, 2);
+    $('raw-json-wrap').classList.remove('visible');
+
+    show('result-section');
+  }
+
+  /* ═══════════════════════════════════════════════
+     TOGGLE RAW JSON
+  ═══════════════════════════════════════════════ */
+  function toggleRaw() {
+    const wrap = $('raw-json-wrap');
+    wrap.classList.toggle('visible');
+    const btn = document.querySelector('.actions-row .btn-secondary');
+    btn.textContent = wrap.classList.contains('visible') ? '✕ OCULTAR JSON' : '⟨/⟩ VER JSON CRUDO';
+  }
+
+  /* ═══════════════════════════════════════════════
+     NEW QUERY
+  ═══════════════════════════════════════════════ */
+  function newQuery() {
+    hide('result-section');
+    lastRawResponse = null;
+    $('form-error').textContent = '';
+    show('form-section');
+  }
+</script>
+</body>
+</html>
